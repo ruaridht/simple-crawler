@@ -3,12 +3,12 @@ Ruaridh Thomson
 
 ## Specification ##
 "Using Python, implement a web crawler with the agent name TTS. The general algorithm was outlined in lecture 2 and is covered in chapter 3 of the textbook. Your crawler should only fetch local links that occur in the body of the webpage after the <!-- CONTENT --> tag and before the <!-- /CONTENT --> tag. As a quick reminder, your implementation should involve the following steps:
-*Find out which areas on the server are accessible to crawlers, and what restrictions are in place.
-*Fetch web pages from the server using the HTTP 1.0/1.1 protocol.
-*Extract a set of outgoing hyperlinks that occur between <!-- CONTENT --> and <!-- /CONTENT -->
-*Discard the links that point to external locations.
-*Detect which of the extracted URLs have already been processed.
-*  Assign priorities to the URLs and insert them into the frontier queue. In this case, document names are numeric, and you should give priority to high numbers."
+* Find out which areas on the server are accessible to crawlers, and what restrictions are in place.
+* Fetch web pages from the server using the HTTP 1.0/1.1 protocol.
+* Extract a set of outgoing hyperlinks that occur between <!-- CONTENT --> and <!-- /CONTENT -->
+* Discard the links that point to external locations.
+* Detect which of the extracted URLs have already been processed.
+* Assign priorities to the URLs and insert them into the frontier queue. In this case, document names are numeric, and you should give priority to high numbers."
 
 ## Notes ##
 The following regular expression may be useful for matching tags: <[^>]*>
