@@ -37,43 +37,39 @@ ROOT_URL  = "http://ir.inf.ed.ac.uk/tts/0786036/0786036.html"
 # The crawler
 class Crawler(object):
   def __init__(self, url):
-    self.url             = url
-    self.urlNetloc       = urlparse.urlparse(url)[1]
-    self.visited         = []
-    self.uniqueSeen      = []
+    self.url       = url
+    self.urlNetloc = urlparse.urlparse(url)[1]
+    self.visited   = []
+    self.seen      = []
     
     self.police    = robotparser.RobotFileParser()
     self.police.set_url("http://" + self.urlNetloc + "/robots.txt")
     
   def crawl(self):
     self.police.read()
-    frontier   = []
+    frontier = []
     heapq.heappush(frontier,self.url)
-    numCrawled = 0
-    
-    self.uniqueSeen.append(self.url) # Avoids us visiting the ROOT_URL, should it appear again.
+    self.seen.append(self.url) # Avoids us visiting the ROOT_URL, should it appear again.
     
     while len(frontier) > 0:
-      #seed = heapq.heappop(frontier)
+      seed = heapq.heappop(frontier)
       
       # The heap maintains the smallest at index 0.  Practical requirements
       # outline the page with the largest number has priority.  Fortunately,
       # heapq does most of the work here.
-      seed = frontier[len(frontier)-1]
+      #seed = frontier[len(frontier)-1]
       
       try:
         self.visited.append(seed)
         
-        # We should really pass in self.uniqueSeen and prevent duplicates from being added
-        # at this stage, preventing us from processing them twice.
+        # By passing the seen URLs we significantly reduce our processing time.
         parse = Parser(seed)
-        parse.parse()
-        numCrawled += 1
+        parse.parse(self.seen)
         
-        # Obviously, the number of links in the frontier is (num links seen)-(num visited)-(
+        # Obviously, the number of links in the frontier is (num links seen)-(num visited)
         print "Seed: %s" % seed
         print "Frontier length %i" % len(frontier)
-        print "Seen length: %i" % len(self.uniqueSeen)
+        print "Seen length: %i" % len(self.seen)
         print "Visited: %i" % len(self.visited)
         
         for link in parse.links:
@@ -84,13 +80,11 @@ class Crawler(object):
           # If the root of the link is outside the ROOT_URL domain we discard it.
           # If we've already visited it we can discard it.  This is not strictly necessary
           #   as the link will have been seen if we visited it.
-          if ((link not in self.uniqueSeen) and (self.police.can_fetch(AGENT,link)) and (linkNetloc == self.urlNetloc) and (link not in self.visited)):
+          if ((link not in self.seen) and (self.police.can_fetch(AGENT,link)) and (linkNetloc == self.urlNetloc) and (link not in self.visited)):
             heapq.heappush(frontier,link)
-            self.uniqueSeen.append(link)
+            self.seen.append(link)
       except Exception, e:
         print "ERROR: Can't process url '%s' (%s)" % (seed, e)
-      
-      print "Parsed: %i" % numCrawled
       
 
 # Fetch a url and parse it for more urls.
@@ -114,7 +108,7 @@ class Parser(object):
 	  stopIndex = content.find('<!-- /CONTENT -->')
 	  return content[startIndex:stopIndex]
 	
-	def parse(self):
+	def parse(self, seenLinks):
 		request = self._createURLRequest()
 		tags = []
 		
@@ -140,7 +134,7 @@ class Parser(object):
 		    href = tag.get("href")
 		    if href is not None:
 		      url = urlparse.urljoin(self.url, escape(href))
-		      if url not in self.links:
+		      if (url not in self.links) and (url not in seenLinks):
 		        self.links.append(url)
 		
 # Give ourselves the option of watching as it crawls.
