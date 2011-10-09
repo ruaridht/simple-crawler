@@ -32,60 +32,7 @@ __author__    = "Ruaridh Thomson"
 USAGE     = "%prog [options] <url>"
 VERSION   = "%prog v" + __version__
 AGENT     = "TTS"
-ROOT_URL  = "http://ir.inf.ed.ac.uk/tts/0786036/0786036.html"
-
-# The crawler
-class Crawler(object):
-  def __init__(self, url):
-    self.url       = url
-    self.urlNetloc = urlparse.urlparse(url)[1]
-    self.visited   = []
-    self.seen      = []
-    
-    self.police    = robotparser.RobotFileParser()
-    self.police.set_url("http://" + self.urlNetloc + "/robots.txt")
-    
-  def crawl(self):
-    self.police.read()
-    frontier = []
-    heapq.heappush(frontier,self.url)
-    self.seen.append(self.url) # Avoids us visiting the ROOT_URL, should it appear again.
-    
-    while len(frontier) > 0:
-      seed = heapq.heappop(frontier)
-      
-      # The heap maintains the smallest at index 0.  Practical requirements
-      # outline the page with the largest number has priority.  Fortunately,
-      # heapq does most of the work here.
-      #seed = frontier[len(frontier)-1]
-      
-      try:
-        self.visited.append(seed)
-        
-        # By passing the seen URLs we significantly reduce our processing time.
-        parse = Parser(seed)
-        parse.parse(self.seen)
-        
-        # Obviously, the number of links in the frontier is (num links seen)-(num visited)
-        print "Seed: %s" % seed
-        print "Frontier length %i" % len(frontier)
-        print "Seen length: %i" % len(self.seen)
-        print "Visited: %i" % len(self.visited)
-        
-        for link in parse.links:
-          linkNetloc = urlparse.urlparse(link)[1]
-          
-          # If we've seen the link we discard it.
-          # If we are not allowed to fetch the link (via robots.txt) we discard it.
-          # If the root of the link is outside the ROOT_URL domain we discard it.
-          # If we've already visited it we can discard it.  This is not strictly necessary
-          #   as the link will have been seen if we visited it.
-          if ((link not in self.seen) and (self.police.can_fetch(AGENT,link)) and (linkNetloc == self.urlNetloc) and (link not in self.visited)):
-            heapq.heappush(frontier,link)
-            self.seen.append(link)
-      except Exception, e:
-        print "ERROR: Can't process url '%s' (%s)" % (seed, e)
-      
+ROOT_URL  = "http://ir.inf.ed.ac.uk/tts/0786036/0786036.html"  
 
 # Fetch a url and parse it for more urls.
 class Parser(object):
@@ -108,7 +55,7 @@ class Parser(object):
 	  stopIndex = content.find('<!-- /CONTENT -->')
 	  return content[startIndex:stopIndex]
 	
-	def parse(self, seenLinks):
+	def parse(self, seenLinks, police, rootNetloc):
 		request = self._createURLRequest()
 		tags = []
 		
@@ -124,19 +71,76 @@ class Parser(object):
 		    tags       = soup('a') # Get only the a href links
 		  except urllib2.HTTPError, error:
 		    if error.code == 404:
-		      print "ERROR: %s -> %s" % (error, error.url)
+		      print "%s : %s" % (error, error.url)
 		    else:
-		      print "ERROR: %s" % error
+		      print "%s" % error
 		  except urllib2.URLError, error:
-		    print "ERROR: %s" % error
+		    print "%s" % error
 		  
 		  for tag in tags:
 		    href = tag.get("href")
 		    if href is not None:
-		      url = urlparse.urljoin(self.url, escape(href))
-		      if (url not in self.links) and (url not in seenLinks):
+		      #url = urlparse.urljoin(self.url, escape(href))
+		      url = urlparse.urljoin(self.url, href)
+		      urlNetloc = urlparse.urlparse(url)[1]
+		      if (url not in self.links) and (url not in seenLinks) and (urlNetloc==rootNetloc) and (police.can_fetch(AGENT, url)):
 		        self.links.append(url)
 		
+# The crawler, managing urls found.
+class Crawler(object):
+  def __init__(self, url):
+    self.url       = url
+    self.urlNetloc = urlparse.urlparse(url)[1]
+    self.visited   = []
+    self.seen      = []
+    
+    self.police    = robotparser.RobotFileParser()
+    self.police.set_url("http://" + self.urlNetloc + "/robots.txt")
+    
+  def crawl(self):
+    self.police.read()
+    frontier = []
+    heapq.heappush(frontier,self.url)
+    self.seen.append(self.url) # Avoids us visiting the ROOT_URL, should it appear again.
+    
+    while len(frontier) > 0:
+      #seed = heapq.heappop(frontier)
+      
+      # The heap maintains the smallest at index 0.  Practical requirements
+      # outline the page with the largest number has priority.  Fortunately,
+      # heapq does most of the work here.
+      seed = frontier[len(frontier)-1]
+      frontier.remove(seed)
+      
+      try:
+        self.visited.append(seed)
+        
+        # By passing the seen URLs we significantly reduce our processing time.
+        parse = Parser(seed)
+        parse.parse(self.seen) #, self.police, self.urlNetloc)
+        
+        """
+        # Obviously, the number of links in the frontier is (num links seen)-(num visited)
+        print "Seed: %s" % seed
+        print "Frontier length %i" % len(frontier)
+        print "Seen length: %i" % len(self.seen)
+        print "Visited: %i" % len(self.visited)
+        """
+        for link in parse.links:
+          linkNetloc = urlparse.urlparse(link)[1]
+          
+          # If we've seen the link we discard it.
+          # If we are not allowed to fetch the link (via robots.txt) we discard it.
+          # If the root of the link is outside the ROOT_URL domain we discard it.
+          # If we've already visited it we can discard it.  This is not strictly necessary
+          #   as the link will have been seen if we visited it.
+          if ((link not in self.seen) and (self.police.can_fetch(AGENT,link)) and (linkNetloc == self.urlNetloc) and (link not in self.visited)):
+            heapq.heappush(frontier,link)
+            self.seen.append(link)
+      except Exception, e:
+        print "Can't crawl url '%s' (%s)" % (seed, e)
+        
+    
 # Give ourselves the option of watching as it crawls.
 def options():
     parser = optparse.OptionParser(usage=USAGE, version=VERSION)

@@ -1,0 +1,69 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1138
+{\fonttbl\f0\fnil\fcharset0 Cochin;}
+{\colortbl;\red255\green255\blue255;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\deftab720
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\sl336\slmult1\pardirnatural\qc
+
+\f0\fs34 \cf0 \expnd0\expndtw0\kerning0
+Text Technologies - Web Crawler\
+Practical 1\
+
+\b \expnd0\expndtw0\kerning0
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\sl336\slmult1\pardirnatural
+\cf0 \expnd0\expndtw0\kerning0
+Designing the crawler.\
+
+\b0 \expnd0\expndtw0\kerning0
+The crawler is based on the given design:\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\li1120\fi-1120\sl336\slmult1\pardirnatural
+\ls1\ilvl0\cf0 {\listtext	\'95	}frontier: priority queue of all pages to be crawled\
+{\listtext	\'95	}initialised with a seed site\
+{\listtext	\'95	}crawler fetches the links from the seed and uses these as further seeds\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\sl336\slmult1\pardirnatural
+\cf0 \
+At its core, given a URL the crawler is able to fetch the contents of the URL, read the HTML source from the returned data, and parse the source for further url links.  On top of this the crawler manages all returned urls and \'91police\'92 the urls to ensure they comply with given restrictions, e.g. robots.txt.  A parser was created to handle fetching and parsing URLs, while a separate crawler object managers the returned URLs and provides the correct seed for the parser.\
+\
+The crawler maintains three lists: links seen by the crawler, links visited, and a queue of seed links (frontier).  The frontier is managed automatically as a heap, keeping the link with the lowest number at frontier[0].  The next seed to be crawled is the last link in the frontier list.  Adding a link to the frontier queue twice is prevented by checking if the link has been seen or not, it is discarded if it has.  Though not necessary for crawling, the visited list gives the links fetched and parsed by the crawler \'96 if there are not errors both the seen and visited lists will be the same.  Initially the parser returned all links found in the content of a url.  A significant speed improvement was made by performing all checks regarding links during the parsing phase, saving processing links we do not want to visit more than once.\
+\
+To parse HTML content, after the html source has been cropped to the <!\'97 CONTENT \'97> tags, the crawler uses the BeautifulSoup parsing framework to extract all <a href...></a> tags \'96 removing the need to manually extract them.  Normally the urls parsed would need to be escaped (e.g. replacing \'91&\'92 with \'91&amp;\'92), however due to the known environment this step has been omitted.\
+\
+We can easily build the parser first, only concerning ourselves with one url, and focus on accurately fetching the content of the url.  If a problem occurs while parsing we know where the problem lies.\
+\
+
+\b \expnd0\expndtw0\kerning0
+Strategy for page visits.\
+Patterns used to define URLs.\
+Keeping track of links already processed.\
+Software used.
+\b0 \expnd0\expndtw0\kerning0
+\
+Provide a short (1-page) overview of the decisions you made in designing your crawler. For example, what strategy is used to pick the next page to visit? How do you keep track of the links already processed? What patterns do you use to define URLs? What software packages did you use in your implementation.\
+\
+
+\b \expnd0\expndtw0\kerning0
+Restrictions:\
+
+\b0 \expnd0\expndtw0\kerning0
+Pages are numbered and the priority is given to pages with a larger number.\
+The crawler must only crawl urls parsed from <a ...></a> tags contained within the <!\'97 CONTENT \'97> of a page.\
+The crawler must remain in the University domain.\
+
+\b \expnd0\expndtw0\kerning0
+\
+Libraries:\
+
+\b0 \expnd0\expndtw0\kerning0
+math\
+robotparser		-	For robots.txt access and checking\
+urllib2			-	For accessing URL content\
+urlparse		-	Managing URLs\
+optparse		-	Parsing options\
+heapq			-	For maintaining frontier priority queue\
+BeautifulSoup	-	HTML parsing\
+cgi (escape)	-	To escape urls.
+\b \expnd0\expndtw0\kerning0
+\
+}
