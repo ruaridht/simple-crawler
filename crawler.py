@@ -12,7 +12,6 @@ Practical 1 for Text Technologies
 
 import re
 import math
-import time
 
 import robotparser
 import urllib2
@@ -32,6 +31,7 @@ class Parser(object):
 		self.links        = []  # To store the found urls
 		self.opener       = urllib2.build_opener()
 		self.numProcessed = 0
+		self.numDupes     = 0
 		
 	def _createURLRequest(self):
 	  seed = self.url
@@ -71,6 +71,9 @@ class Parser(object):
 		      #url = urlparse.urljoin(self.url, escape(href))
 		      url = urlparse.urljoin(self.url, href)
 		      self.numProcessed += 1
+		      if (url in seenLinks):
+		        self.numDupes += 1
+		      
 		      if (url not in self.links) and (url not in seenLinks):
 		        self.links.append(url)
 		  return 1
@@ -90,7 +93,7 @@ class Crawler(object):
     self.totalProcessed = 0
     self.numPoliced     = 0
     self.numOutDomain   = 0
-    self.totalTime      = 0.0
+    self.totalDupes     = 0
     
   def crawl(self):
     self.police.read()
@@ -112,6 +115,7 @@ class Crawler(object):
           continue
         
         self.totalProcessed += parse.numProcessed
+        self.totalDupes     += parse.numDupes
         self.visited.append(seed)
         
         # Obviously, the number of links in the frontier is (num links seen)-(num visited)
@@ -149,6 +153,7 @@ def main():
     print "Total processed: %i" % crawl.totalProcessed
     print "Total policed: %i" % crawl.numPoliced
     print "Num out of domain: %i" % crawl.numOutDomain
+    print "Num of duplicates: %i" % crawl.totalDupes
     
     print "Goodbye."
 
