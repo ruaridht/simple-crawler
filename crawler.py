@@ -12,6 +12,7 @@ Practical 1 for Text Technologies
 
 import re
 import math
+import time
 
 import robotparser
 import urllib2
@@ -101,6 +102,9 @@ class Crawler(object):
     heapq.heappush(frontier,self.url)
     self.seen.append(self.url) # Avoids us visiting the ROOT_URL, should it appear again.
     
+    startTime = time.time()
+    timeMult = 1
+    
     while len(frontier) > 0:
       # The heap maintains the smallest at index 0.  Practical requirements
       # outline the page with the largest number has priority.  Fortunately,
@@ -120,9 +124,9 @@ class Crawler(object):
         
         # Obviously, the number of links in the frontier is (num links seen)-(num visited)
         #print "Seed: %s" % seed
-        print "Frontier length %i" % len(frontier)
+        #print "Frontier length %i" % len(frontier)
         #print "Seen length: %i" % len(self.seen)
-        print "Visited: %i" % len(self.visited)
+        #print "Visited: %i" % len(self.visited)
         
         for link in parse.links:
           linkNetloc = urlparse.urlparse(link)[1]
@@ -145,6 +149,13 @@ class Crawler(object):
             self.seen.append(link)
       except Exception, e:
         print "Can't crawl '%s' (%s)" % (seed, e)
+        
+      spotTime = time.time()
+      elapsedTime = spotTime-startTime
+      if (elapsedTime>(timeMult*2)):
+        print "Time: %i" % elapsedTime
+        print "Dupes: %i" % self.totalDupes
+        timeMult += 1
 
 def main():
     crawl = Crawler(ROOT_URL)
