@@ -102,8 +102,8 @@ class Crawler(object):
     heapq.heappush(frontier,self.url)
     self.seen.append(self.url) # Avoids us visiting the ROOT_URL, should it appear again.
     
-    startTime = time.time()
-    timeMult = 1
+    #startTime = time.time()
+    #timeMult = 1
     
     while len(frontier) > 0:
       # The heap maintains the smallest at index 0.  Practical requirements
@@ -150,12 +150,14 @@ class Crawler(object):
       except Exception, e:
         print "Can't crawl '%s' (%s)" % (seed, e)
         
+      """
       spotTime = time.time()
       elapsedTime = spotTime-startTime
       if (elapsedTime>(timeMult*2)):
         print "Time: %i" % elapsedTime
         print "Dupes: %i" % self.totalDupes
         timeMult += 1
+      """
 
 def main():
     crawl = Crawler(ROOT_URL)
