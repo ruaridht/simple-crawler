@@ -11,35 +11,26 @@ Practical 1 for Text Technologies
 """
 
 import re
-import sys
-import time
 import math
 
 import robotparser
 import urllib2
 import urlparse
-import optparse
 import heapq
 
 from BeautifulSoup import BeautifulSoup
-from cgi import escape
+#from cgi import escape
 
-__version__   = "0.1"
-__copyright__ = "Copyright (C) 2011 Ruaridh Thomson"
-__license__   = "MIT"
-__author__    = "Ruaridh Thomson"
-
-USAGE     = "%prog [options] <url>"
-VERSION   = "%prog v" + __version__
 AGENT     = "TTS"
 ROOT_URL  = "http://ir.inf.ed.ac.uk/tts/0786036/0786036.html"  
 
 # Fetch a url and parse it for more urls.
 class Parser(object):
 	def __init__(self, url):
-		self.url    = url
-		self.links  = []  # To store the found urls
-		self.opener = urllib2.build_opener()
+		self.url          = url
+		self.links        = []  # To store the found urls
+		self.opener       = urllib2.build_opener()
+		self.numProcessed = 0
 		
 	def _createURLRequest(self):
 	  seed = self.url
@@ -55,7 +46,7 @@ class Parser(object):
 	  stopIndex = content.find('<!-- /CONTENT -->')
 	  return content[startIndex:stopIndex]
 	
-	def parse(self, seenLinks, police, rootNetloc):
+	def parse(self, seenLinks):
 		request = self._createURLRequest()
 		tags = []
 		
@@ -82,8 +73,8 @@ class Parser(object):
 		    if href is not None:
 		      #url = urlparse.urljoin(self.url, escape(href))
 		      url = urlparse.urljoin(self.url, href)
-		      urlNetloc = urlparse.urlparse(url)[1]
-		      if (url not in self.links) and (url not in seenLinks) and (urlNetloc==rootNetloc) and (police.can_fetch(AGENT, url)):
+		      self.numProcessed += 1
+		      if (url not in self.links) and (url not in seenLinks):
 		        self.links.append(url)
 		
 # The crawler, managing urls found.
@@ -96,6 +87,9 @@ class Crawler(object):
     
     self.police    = robotparser.RobotFileParser()
     self.police.set_url("http://" + self.urlNetloc + "/robots.txt")
+    
+    self.totalProcessed = 0
+    self.numPoliced     = 0
     
   def crawl(self):
     self.police.read()
@@ -113,19 +107,19 @@ class Crawler(object):
       frontier.remove(seed)
       
       try:
-        self.visited.append(seed)
-        
         # By passing the seen URLs we significantly reduce our processing time.
         parse = Parser(seed)
         parse.parse(self.seen) #, self.police, self.urlNetloc)
         
-        """
+        self.totalProcessed += parse.numProcessed
+        self.visited.append(seed)
+        
         # Obviously, the number of links in the frontier is (num links seen)-(num visited)
         print "Seed: %s" % seed
         print "Frontier length %i" % len(frontier)
         print "Seen length: %i" % len(self.seen)
         print "Visited: %i" % len(self.visited)
-        """
+        
         for link in parse.links:
           linkNetloc = urlparse.urlparse(link)[1]
           
@@ -134,33 +128,66 @@ class Crawler(object):
           # If the root of the link is outside the ROOT_URL domain we discard it.
           # If we've already visited it we can discard it.  This is not strictly necessary
           #   as the link will have been seen if we visited it.
+          if not (self.police.can_fetch(AGENT,link)):
+            print "Banned by robots.txt: %s" % link
+            self.numPoliced += 1
+          
           if ((link not in self.seen) and (self.police.can_fetch(AGENT,link)) and (linkNetloc == self.urlNetloc) and (link not in self.visited)):
             heapq.heappush(frontier,link)
             self.seen.append(link)
       except Exception, e:
         print "Can't crawl url '%s' (%s)" % (seed, e)
+
+
+class DotWriter:
+
+    """ Formats a collection of Link objects as a Graphviz (Dot)
+    graph.  Mostly, this means creating a node for each URL with a
+    name which Graphviz will accept, and declaring links between those
+    nodes."""
+
+    def __init__ (self):
+        self.node_alias = {}
+
+    def _safe_alias(self, url, silent=False):
+
+        """Translate URLs into unique strings guaranteed to be safe as
+        node names in the Graphviz language.  Currently, that's based
+        on the md5 digest, in hexadecimal."""
+
+        if url in self.node_alias:
+            return self.node_alias[url]
+        else:
+            m = hashlib.md5()
+            m.update(url)
+            name = "N"+m.hexdigest()
+            self.node_alias[url]=name
+            if not silent:
+                print "\t%s [label=\"%s\"];" % (name, url)                
+            return name
+
+
+    def asDot(self, links):
+
+        """ Render a collection of Link objects as a Dot graph"""
         
-    
-# Give ourselves the option of watching as it crawls.
-def options():
-    parser = optparse.OptionParser(usage=USAGE, version=VERSION)
-    parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Print parsing information")
+        print "digraph Crawl {"
+        print "\t edge [K=0.2, len=0.1];"
+        for l in links:            
+            print "\t" + self._safe_alias(l.src) + " -> " + self._safe_alias(l.dst) + ";"
+        print  "}"
 
-    opts, args = parser.parse_args()
-    return opts
 
-def main():    
-    opts = options()
-    
-    #parse = Parser(ROOT_URL)
-    #parse.parse()
-    
+
+def main():
     crawl = Crawler(ROOT_URL)
     crawl.crawl()
     
-    if opts.verbose:
-      for i, url in enumerate(parse.links):
-        print "%d. %s" % (i, url)
+    print "Total processed: %i" % crawl.totalProcessed
+    print "Total policed: %i" % crawl.numPoliced
+    
+    d = DotWriter()
+    d.asDot(crawl.visited)
     
     print "Goodbye."
 

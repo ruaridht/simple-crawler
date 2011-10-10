@@ -7,8 +7,8 @@
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\sl336\slmult1\pardirnatural\qc
 
 \f0\fs34 \cf0 \expnd0\expndtw0\kerning0
-Text Technologies - Web Crawler\
-Practical 1\
+Text Technologies - Practical 1 - Web Crawler - Report\
+Ruaridh Thomson - s0786036\
 
 \b \expnd0\expndtw0\kerning0
 \
@@ -29,6 +29,7 @@ At its core, given a URL the crawler is able to fetch the contents of the URL, r
 The crawler maintains three lists: links seen by the crawler, links visited, and a queue of seed links (frontier).  The frontier is managed automatically as a heap, keeping the link with the lowest number at frontier[0].  The next seed to be crawled is the last link in the frontier list.  Adding a link to the frontier queue twice is prevented by checking if the link has been seen or not, it is discarded if it has.  Though not necessary for crawling, the visited list gives the links fetched and parsed by the crawler \'96 if there are not errors both the seen and visited lists will be the same.  Initially the parser returned all links found in the content of a url.  A significant speed improvement was made by performing all checks regarding links during the parsing phase, saving processing links we do not want to visit more than once.\
 \
 To parse HTML content, after the html source has been cropped to the <!\'97 CONTENT \'97> tags, the crawler uses the BeautifulSoup parsing framework to extract all <a href...></a> tags \'96 removing the need to manually extract them.  Normally the urls parsed would need to be escaped (e.g. replacing \'91&\'92 with \'91&amp;\'92), however due to the known environment this step has been omitted.\
+The crawler is designed to crawl in one pass, therefore pages that return 404 errors are not added back into the queue and are assumed to be missing.  Any parsed links that have not already been seen are checked against robots.txt using robotparser and discarded if they are not allowed to be fetched.  A further restriction is omitting any parsed links that fall outside of the initial seed\'92s network location (in this case: ir.inf.ed.ac.uk).  Furthermore, because the crawler uses a priority queue based on page numbers, it does not traverse pages in a breadth/depth-first manner.\
 \
 We can easily build the parser first, only concerning ourselves with one url, and focus on accurately fetching the content of the url.  If a problem occurs while parsing we know where the problem lies.\
 \
